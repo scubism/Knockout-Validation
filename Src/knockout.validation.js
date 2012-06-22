@@ -157,6 +157,41 @@
             //backwards compatability
             configure: function (options) { ko.validation.init(options); },
 
+            validate: function (obj){
+                validatables = ko.observableArray([]);
+
+                traverse = function traverse(obj, level){
+                    val = ko.utils.unwrapObservable(obj);
+                    if (ko.isObservable(obj)) {
+                        if (obj.isValid)
+                            validatables.push(obj);
+                    }
+
+                    //get list of values either from array or object but ignore non-objects
+                    if (val) {
+                        if (utils.isArray(val)) {
+                            objValues = val;
+                        } else if (utils.isObject(val)) {
+                            objValues = utils.values(val);
+                        }
+                    }
+
+                    //process recurisvely if it is deep grouping
+                    if (level !== 0) {
+                        ko.utils.arrayForEach(objValues, function (observable) {
+                            //but not falsy things and not HTML Elements
+                            if (observable && !observable.nodeType) traverse(observable, level + 1);
+                        });
+                    }
+                };
+
+                traverse(obj, -1);
+
+                ko.utils.arrayForEach(validatables(), function (validatable) {
+                    validatable.validate();
+                });
+            },
+
             group: function group(obj, options) { // array of observables or viewModel
                 var options = ko.utils.extend(configuration.grouping, options),
                 validatables = ko.observableArray([]),
@@ -741,6 +776,26 @@
             var h_change = observable.subscribe(function () {
                 observable.isModified(true);
             });
+
+            observable.observableValid = ko.observable(true);
+            observable.observableError = ko.observable(false);
+            observable.__valid__.subscribe(function(){
+                if(observable.isModified()){
+                    observable.observableError(observable.error);
+                    observable.observableValid(observable.__valid__());
+                }
+            });
+            observable.isModified.subscribe(function(){
+                if(observable.isModified()){
+                    observable.observableError(observable.error);
+                    observable.observableValid(observable.__valid__());
+                }
+            });
+
+            observable.validate = function(){
+                ko.validation.validateObservable(observable);
+                observable.isModified(true);
+            };
 
             observable._disposeValidation = function () {
                 //first dispose of the subscriptions
