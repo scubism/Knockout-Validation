@@ -158,6 +158,7 @@
             configure: function (options) { ko.validation.init(options); },
 
             validate: function (obj){
+                var errors = [];
                 validatables = ko.observableArray([]);
 
                 traverse = function traverse(obj, level){
@@ -188,8 +189,12 @@
                 traverse(obj, -1);
 
                 ko.utils.arrayForEach(validatables(), function (validatable) {
-                    validatable.validate();
+                    var bl = validatable.validate();
+                    if(!bl){
+                        errors.push(validatable);
+                    }
                 });
+                return errors;
             },
 
             group: function group(obj, options) { // array of observables or viewModel
@@ -772,29 +777,44 @@
                 return observable.__valid__();
             });
 
+            observable.forceError = ko.observable(false);
+
             //subscribe to changes in the observable
             var h_change = observable.subscribe(function () {
                 observable.isModified(true);
             });
 
+            observable.checkValid = function(){
+                if(observable.forceError()){
+                    observable.observableError("force error");
+                    observable.observableValid(false);
+                }else{
+                    if(observable.isModified()){
+                        observable.observableError(observable.error);
+                        observable.observableValid(observable.__valid__());
+                    }
+                }
+            };
+
             observable.observableValid = ko.observable(true);
             observable.observableError = ko.observable(false);
             observable.__valid__.subscribe(function(){
-                if(observable.isModified()){
-                    observable.observableError(observable.error);
-                    observable.observableValid(observable.__valid__());
-                }
+                observable.checkValid();
             });
+
+
             observable.isModified.subscribe(function(){
-                if(observable.isModified()){
-                    observable.observableError(observable.error);
-                    observable.observableValid(observable.__valid__());
-                }
+                observable.checkValid();
+            });
+            
+            observable.forceError.subscribe(function(){
+                observable.checkValid();
             });
 
             observable.validate = function(){
-                ko.validation.validateObservable(observable);
+                var bl = ko.validation.validateObservable(observable);
                 observable.isModified(true);
+                return bl;
             };
 
             observable._disposeValidation = function () {
