@@ -761,6 +761,11 @@
 
             observable.isModified = ko.observable(false);
 
+            observable.clear = function(){
+                observable.observableValid(true);
+                observable.isModified(false);
+            };
+
             // we use a computed here to ensure that anytime a dependency changes, the
             // validation logic evaluates
             var h_obsValidationTrigger = ko.computed(function () {
