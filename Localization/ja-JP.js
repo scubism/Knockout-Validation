@@ -21,8 +21,8 @@
 
 ko.validation.localize({
     required: "必須項目です",
-    maxlength: "{0} 文字以下を入力してください",
-    minlength: "{0} 文字以上を入力してください",
+    maxLength: "{0} 文字以下を入力してください",
+    minLength: "{0} 文字以上を入力してください",
     rangelength: "{0} 文字以上 {1} 文字以下で入力してください",
     email: "メールアドレスを入力してください",
     url: "URLを入力してください",
