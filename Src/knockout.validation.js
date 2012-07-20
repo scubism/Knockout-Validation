@@ -301,10 +301,15 @@
             //      });
             //
             addRule: function (observable, rule) {
-                observable.extend({ validatable: true });
+                try{
+                    observable.extend({ validatable: true });
 
-                //push a Rule Context to the observables local array of Rule Contexts
-                observable.rules.push(rule);
+                    //push a Rule Context to the observables local array of Rule Contexts
+                    observable.rules.push(rule);
+                }catch(e){
+                    // doesn't support 'extend' property??
+                }
+
                 return observable;
             },
 
