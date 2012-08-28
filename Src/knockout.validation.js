@@ -791,7 +791,9 @@
 
             //subscribe to changes in the observable
             var h_change = observable.subscribe(function () {
-                observable.isModified(true);
+                if(observable()!==undefined){
+                    observable.isModified(true);
+                }
             });
 
             observable.checkValid = function(){
