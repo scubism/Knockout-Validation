@@ -400,8 +400,6 @@
                 ko.utils.arrayForEach(html5Attributes, function (attr) {
                     if (utils.hasAttribute(element, attr)) {
                         val = element.getAttribute(attr);
-                        console.log('parseInputValidationAttributes');
-                        console.log(attr);
                         ko.validation.addRule(valueAccessor(), {
                             rule: attr,
                             params: element.getAttribute(attr) || true
@@ -829,10 +827,6 @@
 
             observable.validate = function(){
                 var bl = ko.validation.validateObservable(observable);
-                if(observable()=='gakusei'){
-                    console.log('gakusei!!!!');
-                    console.log(observable.rules());
-                }
                 observable.isModified(true);
                 return bl;
             };
