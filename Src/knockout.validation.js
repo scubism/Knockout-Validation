@@ -61,7 +61,7 @@
                 return (typeof o === 'function' ? o() : o);
             },
             hasAttribute: function (node, attr) {
-                return node.getAttribute(attr) !== null;
+                return (node.getAttribute(attr) !== null && node.getAttribute(attr) !== undefined && node.getAttribute(attr) !== '');
             },
             isValidatable: function (o) {
                 return o.rules && o.isValid && o.isModified;
@@ -399,6 +399,9 @@
             parseInputValidationAttributes: function (element, valueAccessor) {
                 ko.utils.arrayForEach(html5Attributes, function (attr) {
                     if (utils.hasAttribute(element, attr)) {
+                        val = element.getAttribute(attr);
+                        console.log('parseInputValidationAttributes');
+                        console.log(attr);
                         ko.validation.addRule(valueAccessor(), {
                             rule: attr,
                             params: element.getAttribute(attr) || true
@@ -438,7 +441,8 @@
         validator: function (val, required) {
             var stringTrimRegEx = /^\s+|\s+$/g,
                 testVal;
-
+            if (!required) // if they passed: { required: false }, then don't require this
+                return true;
             if (val === undefined || val === null) {
                 return !required;
             }
@@ -825,6 +829,10 @@
 
             observable.validate = function(){
                 var bl = ko.validation.validateObservable(observable);
+                if(observable()=='gakusei'){
+                    console.log('gakusei!!!!');
+                    console.log(observable.rules());
+                }
                 observable.isModified(true);
                 return bl;
             };
