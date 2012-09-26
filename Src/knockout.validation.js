@@ -61,7 +61,7 @@
                 return (typeof o === 'function' ? o() : o);
             },
             hasAttribute: function (node, attr) {
-                return node.getAttribute(attr) !== null;
+                return (node.getAttribute(attr) !== null && node.getAttribute(attr) !== undefined && node.getAttribute(attr) !== '');
             },
             isValidatable: function (o) {
                 return o.rules && o.isValid && o.isModified;
@@ -156,6 +156,46 @@
             },
             //backwards compatability
             configure: function (options) { ko.validation.init(options); },
+
+            validate: function (obj){
+                var errors = [];
+                validatables = ko.observableArray([]);
+
+                traverse = function traverse(obj, level){
+                    val = ko.utils.unwrapObservable(obj);
+                    if (ko.isObservable(obj)) {
+                        if (obj.isValid)
+                            validatables.push(obj);
+                    }
+
+                    //get list of values either from array or object but ignore non-objects
+                    if (val) {
+                        if (utils.isArray(val)) {
+                            objValues = val;
+                        } else if (utils.isObject(val)) {
+                            objValues = utils.values(val);
+                        }
+                    }
+
+                    //process recurisvely if it is deep grouping
+                    if (level !== 0) {
+                        ko.utils.arrayForEach(objValues, function (observable) {
+                            //but not falsy things and not HTML Elements
+                            if (observable && !observable.nodeType) traverse(observable, level + 1);
+                        });
+                    }
+                };
+
+                traverse(obj, -1);
+
+                ko.utils.arrayForEach(validatables(), function (validatable) {
+                    var bl = validatable.validate();
+                    if(!bl){
+                        errors.push(validatable);
+                    }
+                });
+                return errors;
+            },
 
             group: function group(obj, options) { // array of observables or viewModel
                 var options = ko.utils.extend(configuration.grouping, options),
@@ -261,10 +301,15 @@
             //      });
             //
             addRule: function (observable, rule) {
-                observable.extend({ validatable: true });
+                try{
+                    observable.extend({ validatable: true });
 
-                //push a Rule Context to the observables local array of Rule Contexts
-                observable.rules.push(rule);
+                    //push a Rule Context to the observables local array of Rule Contexts
+                    observable.rules.push(rule);
+                }catch(e){
+                    // doesn't support 'extend' property??
+                }
+
                 return observable;
             },
 
@@ -354,6 +399,7 @@
             parseInputValidationAttributes: function (element, valueAccessor) {
                 ko.utils.arrayForEach(html5Attributes, function (attr) {
                     if (utils.hasAttribute(element, attr)) {
+                        val = element.getAttribute(attr);
                         ko.validation.addRule(valueAccessor(), {
                             rule: attr,
                             params: element.getAttribute(attr) || true
@@ -393,7 +439,8 @@
         validator: function (val, required) {
             var stringTrimRegEx = /^\s+|\s+$/g,
                 testVal;
-
+            if (!required) // if they passed: { required: false }, then don't require this
+                return true;
             if (val === undefined || val === null) {
                 return !required;
             }
@@ -721,6 +768,11 @@
 
             observable.isModified = ko.observable(false);
 
+            observable.clear = function(){
+                observable.observableValid(true);
+                observable.isModified(false);
+            };
+
             // we use a computed here to ensure that anytime a dependency changes, the
             // validation logic evaluates
             var h_obsValidationTrigger = ko.computed(function () {
@@ -737,10 +789,47 @@
                 return observable.__valid__();
             });
 
+            observable.forceError = ko.observable(false);
+
             //subscribe to changes in the observable
             var h_change = observable.subscribe(function () {
-                observable.isModified(true);
+                if(observable()!==undefined){
+                    observable.isModified(true);
+                }
             });
+
+            observable.checkValid = function(){
+                if(observable.forceError()){
+                    observable.observableError("force error");
+                    observable.observableValid(false);
+                }else{
+                    if(observable.isModified()){
+                        observable.observableError(observable.error);
+                        observable.observableValid(observable.__valid__());
+                    }
+                }
+            };
+
+            observable.observableValid = ko.observable(true);
+            observable.observableError = ko.observable(false);
+            observable.__valid__.subscribe(function(){
+                observable.checkValid();
+            });
+
+
+            observable.isModified.subscribe(function(){
+                observable.checkValid();
+            });
+            
+            observable.forceError.subscribe(function(){
+                observable.checkValid();
+            });
+
+            observable.validate = function(){
+                var bl = ko.validation.validateObservable(observable);
+                observable.isModified(true);
+                return bl;
+            };
 
             observable._disposeValidation = function () {
                 //first dispose of the subscriptions
