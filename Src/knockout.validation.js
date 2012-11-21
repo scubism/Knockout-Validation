@@ -485,7 +485,7 @@
 
     ko.validation.rules['pattern'] = {
         validator: function (val, regex) {
-            if(!val)return false;
+            if(!val)return true;
             return utils.isEmptyVal(val) || val.match(regex) != null;
         },
         message: 'Please check this value.'
