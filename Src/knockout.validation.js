@@ -485,6 +485,7 @@
 
     ko.validation.rules['pattern'] = {
         validator: function (val, regex) {
+            if(!val)return false;
             return utils.isEmptyVal(val) || val.match(regex) != null;
         },
         message: 'Please check this value.'
@@ -804,12 +805,16 @@
                     observable.observableValid(false);
                 }else{
                     if(observable.isModified()){
-                        observable.observableError(observable.error);
+                        if(observable.errorMessage()){
+                            observable.observableError(observable.errorMessage());
+                        }else{
+                            observable.observableError(observable.error);
+                        }
                         observable.observableValid(observable.__valid__());
                     }
                 }
             };
-
+            observable.errorMessage = ko.observable(false);
             observable.observableValid = ko.observable(true);
             observable.observableError = ko.observable(false);
             observable.__valid__.subscribe(function(){
