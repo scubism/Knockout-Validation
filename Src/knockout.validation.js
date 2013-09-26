@@ -61,7 +61,7 @@
                 return (typeof o === 'function' ? o() : o);
             },
             hasAttribute: function (node, attr) {
-                return node.getAttribute(attr) !== null;
+                return (node.getAttribute(attr) !== null && node.getAttribute(attr) !== undefined && node.getAttribute(attr) !== '');
             },
             isValidatable: function (o) {
                 return o.rules && o.isValid && o.isModified;
@@ -399,6 +399,7 @@
             parseInputValidationAttributes: function (element, valueAccessor) {
                 ko.utils.arrayForEach(html5Attributes, function (attr) {
                     if (utils.hasAttribute(element, attr)) {
+                        val = element.getAttribute(attr);
                         ko.validation.addRule(valueAccessor(), {
                             rule: attr,
                             params: element.getAttribute(attr) || true
@@ -438,7 +439,8 @@
         validator: function (val, required) {
             var stringTrimRegEx = /^\s+|\s+$/g,
                 testVal;
-
+            if (!required) // if they passed: { required: false }, then don't require this
+                return true;
             if (val === undefined || val === null) {
                 return !required;
             }
@@ -483,6 +485,7 @@
 
     ko.validation.rules['pattern'] = {
         validator: function (val, regex) {
+            if(!val)return true;
             return utils.isEmptyVal(val) || val.match(regex) != null;
         },
         message: 'Please check this value.'
@@ -500,7 +503,7 @@
             //I think an empty email address is also a valid entry
             //if one want's to enforce entry it should be done with 'required: true'
             return utils.isEmptyVal(val) || (
-                validate && /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))$/i.test(val)
+                validate && /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(([a-z]|\d|[!#\.\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))$/i.test(val)
             );
         },
         message: '{0} is not a proper email address'
@@ -791,7 +794,9 @@
 
             //subscribe to changes in the observable
             var h_change = observable.subscribe(function () {
-                observable.isModified(true);
+                if(observable()!==undefined){
+                    observable.isModified(true);
+                }
             });
 
             observable.checkValid = function(){
@@ -800,12 +805,16 @@
                     observable.observableValid(false);
                 }else{
                     if(observable.isModified()){
-                        observable.observableError(observable.error);
+                        if(observable.errorMessage()){
+                            observable.observableError(observable.errorMessage());
+                        }else{
+                            observable.observableError(observable.error);
+                        }
                         observable.observableValid(observable.__valid__());
                     }
                 }
             };
-
+            observable.errorMessage = ko.observable(false);
             observable.observableValid = ko.observable(true);
             observable.observableError = ko.observable(false);
             observable.__valid__.subscribe(function(){
